@@ -1,0 +1,4 @@
+perltidy -csc -ce -l=120 bismark_methylation_extractor
+perltidy -csc -ce -l=120 bismark_methylation_extractor_bwasp
+mv bismark_methylation_extractor_bwasp.tdy bismark_methylation_extractor_bwasp
+diff bismark_methylation_extractor.tdy bismark_methylation_extractor_bwasp > show-diffs

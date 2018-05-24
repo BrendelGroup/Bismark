@@ -1,0 +1,50 @@
+********************************************************************************
+The only script changed in this Bismark fork is bismark_methylation_extractor,
+with our version named bismark_methylation_extractor_bwasp.
+
+The goal was to correct a problem with the implementation of the 3'-end bias
+removal options currently (v.19.1) in place.  The parameters --ignore_3prime <int>
+and --ignore_3prime_r2 <int> specify the number of bases to be clipped from the
+3'-ends of reads.  However, this implementation of clipping does not reflect the
+intended purpose of removing 3'-end biases in the BWASP workflow.
+
+To detect read-end biases, we look at the *.M-bias.txt files which report the
+methylation percentages per position in the 5'-end aligned reads.  Thus, if there
+is a clear bias at the 5'-end, those positions should not be counted.  Similarly at
+the 3'-end.  However, the 3'-end tallies are produced by adequately long reads only.
+Let's say reads should be of length 100.  The *.M-bias.txt file will list positional
+methylation percentages for positions 1 to 100.  If the last two positions are
+significantly biased, users would currently select --ignore_3prime 2 (for Read 1).
+
+The problem with the current implementation is that the --ignore_3prime 2 option
+ignores the last 2 positions of ANY Read 1.  However, some reads will have been
+quality-culled to shorter lengths already; say 90 base pairs - then we would throw
+away the data for positions 89 and 90.  This is not want we intend!
+
+Thus, our implementation of bismark_methylation_extractor_bwasp replaces the
+--ignore_3prime[_r2] parameters with --maxrlgth[_r2], specifying the last positions
+to be counted.  For the above example, we'd use --maxrlgth 98.  If a read is
+already shorter than the allowable length, then all of its methylation calls are
+tallied.
+
+Updated programs:
+
+bismark_methylation_extractor		=	original template
+bismark_methylation_extractor.tdy	=	original template, perltidy-ed
+bismark_methylation_extractor.bwasp	=	BWASP-specific implementation (perltidy-ed)
+
+0Record-ThisFork			=	documentation of perltidy settings and changes
+(Perltidy - see http://perltidy.sourceforge.net/)
+
+********************************************************************************
+To test the changes, run bismark_methylation_extractor versions with different
+parameter settings and look at the differences in the *.M-bias.txt files.  With
+the new version, counts should not change if the --include_overlap option is
+used, the only output change being that only the selected positions are included
+(compared to the default bismark_methylation_extractor version, which will have
+internal position counts change because of the culling of counts at the end of
+less than full-length reads).  Note that the default --no_overlap might produce
+internal position count differences because 3'-end culling of Read 1 might allow
+counting of previously-overlapped Read 2 positions.
+
+Volker Brendel, vbrendel@indiana.edu, May 23, 2018
